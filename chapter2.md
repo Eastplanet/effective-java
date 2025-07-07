@@ -145,3 +145,251 @@ BigInteger prime = BigInteger.valueOf();
 StackWalker luke = StackWalker.getInstance();
 // 등등...
 ```
+
+<br>
+<br>
+<br>
+
+
+# 아이템2. 생성자에 매개변수가 많다면 빌더를 고려하라
+
+정적 팩토리와 생성자에는 매개변수가 많을 때 클라이언트 코드를 작성하거나 읽기 어렵다.
+
+### 점층적 생성자 패턴
+
+아래와 같은 `점층적 생성자 패턴`을 사용하면 매개변수가 가독성이 좋지않고, 또한 a와 c만 받는 생성자를 만들 수 없으니(a,b만 받는 생성자와 시그니처가 동일해서) 
+필요없는 b를 받아야할 수도 있다. 
+
+```java
+public class NutritionFacts {
+    
+    private int a;
+    private int b;
+    private int c;
+
+    public NutritionFacts() {
+    }
+
+    public NutritionFacts(int a) {
+        this.a = a;
+    }
+
+    public NutritionFacts(int a, int b) {
+        this.a = a;
+        this.b = b;
+    }
+    
+    public NutritionFacts(int a, int b, int c) {
+        this.a = a;
+        this.b = b;
+        this.c = c;
+    }
+}
+```
+
+### 자바빈즈(JavaBeans) 패턴
+
+두번째 방식으로는 `자바빈즈 패턴`을 사용할 수 있다. <br>
+매개변수가 없는 생성자를 만든 후 setter를 통해 값을 설정하는 방식이다
+
+```java
+public class NutritionFacts2 {
+
+    private int a;
+    private int b;
+    private int c;
+
+    public NutritionFacts2() {
+    }
+
+    public void setA(int a) {
+        this.a = a;
+    }
+
+    public void setB(int b) {
+        this.b = b;
+    }
+
+    public void setC(int c) {
+        this.c = c;
+    }
+}
+```
+
+```java
+NutritionFacts2 facts = new NutritionFacts2();
+facts.setA(1);
+facts.setB(1);
+facts.setC(1);
+```
+더 읽기 쉬워졌지만, 이 방식의 가장 큰 문제는 값이 세팅되기 전까지 일관성이 무너진 상태에 놓이게 된다.<br>
+
+### 빌더 패턴
+세번째 방법은 안정성과 가독성을 겸비한 빌더 패턴이다.<br>
+
+필수 값은 Builder에서 final로 선언하여 생성할 때 받고, 각 setter와 유사한 메서드를 이용하여 값을 세팅한 뒤, 마지막에 build를 통해 생성한다.
+setter들은 빌더 자신을 반환하므로 연쇄적으로 호출을 할 수 있다. <br>
+이런 방식을 fluent API 혹은 method chaining이라 한다.
+
+```java
+public class NutritionFacts3 {
+
+    private final int a;
+    private final int b;
+    private final int c;
+
+    public static class Builder{
+        private final int a;
+        private int b;
+        private int c;
+
+        public Builder(int a){
+            this.a = a;
+        }
+
+        public Builder b(int b){
+            this.b = b;
+            return this;
+        }
+
+        public Builder c(int c){
+            this.c = c;
+            return this;
+        }
+
+        public NutritionFacts3 build(){
+            return new NutritionFacts3(this);
+        }
+    }
+
+    private NutritionFacts3(Builder builder){
+        a = builder.a;
+        b = builder.b;
+        c = builder.c;
+    }
+}
+```
+
+```java
+NutritionFacts3 facts3 = new NutritionFacts3.Builder(1)
+                .b(2)
+                .c(3)
+                .build();
+```
+
+아래와 같이 builder라는 메소드를 추가하여 new 키워드 없이 생성할 수도 있을 것 같다.
+```java
+public class NutritionFacts4 {
+
+    private final int a;
+    private final int b;
+    private final int c;
+
+    // 추가된 메소드
+    public static Builder builder(int a){
+        return new Builder(a);
+    }
+
+    public static class Builder{
+        private final int a;
+        private int b;
+        private int c;
+
+        public Builder(int a){
+            this.a = a;
+        }
+
+        public NutritionFacts4.Builder b(int b){
+            this.b = b;
+            return this;
+        }
+
+        public NutritionFacts4.Builder c(int c){
+            this.c = c;
+            return this;
+        }
+
+        public NutritionFacts4 build(){
+            return new NutritionFacts4(this);
+        }
+    }
+
+    private NutritionFacts4(NutritionFacts4.Builder builder){
+        a = builder.a;
+        b = builder.b;
+        c = builder.c;
+    }
+}
+```
+
+```java
+NutritionFacts4 build = NutritionFacts4.builder(1)
+                .b(2)
+                .c(3)
+                .build();
+```
+
+빌더 패턴은 계층적으로 설계된 클래스와 함께 쓰기에 좋다. <br>
+
+```java
+public abstract class Phone {
+
+    private final int size;
+
+    abstract static class Builder<T extends Builder<T>> {
+
+        private int size;
+        
+        public T size(int size) {
+            this.size = size;
+            return self();
+        }
+
+        abstract Phone build();
+
+        protected abstract T self();
+    }
+
+    Phone(Builder<?> builder){
+        size = builder.size;
+    }
+}
+
+public class SpeedPhone extends Phone {
+
+    private final int speed;
+
+    public static class Builder extends Phone.Builder<Builder> {
+        
+        private final int speed;
+
+        public Builder(int speed) { this.speed = speed; }
+
+        @Override
+        SpeedPhone build() { return new SpeedPhone(this); }
+
+        @Override
+        protected Builder self() { return this; }
+    }
+
+    SpeedPhone(Builder builder) {
+        super(builder);
+        speed = builder.speed;
+    }
+}
+```
+
+```java
+SpeedPhone build = new SpeedPhone.Builder(10).size(10).build();
+```
+
+### 빌더 패턴의 단점
+- 객체를 만들기 위해 빌더부터 만들어야 한다. 생성 비용이 크지는 않지만 성능에 민감한 상황에서는 문제가 될 수 있다.
+- 또한 코드가 장황해진다는 단점이 존재한다.
+
+
+
+
+
+
+
