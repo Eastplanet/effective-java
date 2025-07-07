@@ -441,5 +441,20 @@ public enum Singleton3 {
 }
 ```
 
+<br>
+<br>
+<br>
+
+# 아이템 4. 인스턴스화를 막으려거든 private 생성자를 사용하라
+의도치 않게 인스턴스화 할 수 있게 된 클래스가 있다. 추상 클래스로 만들더라도 하위 클래스를 만들어 인스턴스화 할 수 있기 때문이다. <br>
+이를 본 사용자는 상속해서 쓰라는 뜻으로 오해할 수 있으니, 명시적으로 private 생성자를 추가하여 클래스의 인스턴스화를 막을 수 있다.
+
+```java
+private MyClass(){
+    throw new AssertionError();
+}
+```
+AssertionError 반드시 던질 필요는 클래스 내에서 호출하지 않도록 해준다.
+
 
 
