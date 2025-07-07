@@ -387,9 +387,59 @@ SpeedPhone build = new SpeedPhone.Builder(10).size(10).build();
 - 객체를 만들기 위해 빌더부터 만들어야 한다. 생성 비용이 크지는 않지만 성능에 민감한 상황에서는 문제가 될 수 있다.
 - 또한 코드가 장황해진다는 단점이 존재한다.
 
+<br>
+<br>
 
+# 아이템 3. private 생성자나 열거 타입으로 싱글톤임을 보증하라
 
+싱글톤이란 인스턴스를 오직 하나만 생성할 수 있는 클래스를 말한다. <br>
+클래스를 싱글톤으로 만들면 이를 사용하는 클라이언트를 테스트하가 어려워질 수 있다. <br>
+타입을 인터페이스로 정의한 다음 그 인터페이스를 구현해서 만든 싱글톤이 아니라면 싱글톤 인스턴스를 mock으로 대체할 수 없기 때문이다.
 
+### public static final 필드 방식
+private 생성자를 통해 초기화할 때 딱 한 번만 호출되도록 보장할 수 있다. <br>
+하지만 리플렉션 API를 사용해 private 생성자를 호출할 수 있다. <br>
+장점 
+- 해당 클래스가 싱글톤임이 API에 잘 드러난다.
+- 간결함
+```java
+public class Singleton1 {
+    public static final Singleton1 INSTANCE = new Singleton1();
+    private Singleton1() {}
+    public void doSomeThing(){}
+}
+```
+
+### 정적 팩토리 방식
+장점
+- 추후에 API를 바꾸지 않고도 싱글톤이 아니게 변경할 수 있다.
+- 정적 팩토리를 제네릭 싱글톤 팩토리라 만들 수 있다. (아이템 30 참고)
+- 정적 팩토리의 메소드 참조를 공급자로 사용할 수 있다. (Singletos2::getInstance를 Supplier<Singleton2>로 사용)
+```java
+public class Singleton2 {
+    private static Singleton2 instance = new Singleton2();
+    private Singleton2() {}
+    public static Singleton2 getInstance() {
+        return instance;
+    }
+    public void doSomeThing(){}
+}
+```
+
+두 방식 모두 직렬화하기 위해서 단순히 Serializable을 구현한다고 선언하는 것만으로는 부족하다. <br>
+모든 인스턴스 필드를 일시적(transient)이라고 선언하고 readResolve 메서드를 제공해야 한다.(아이템 89) <br>
+이렇게 하지 않으면 직렬화된 인스턴스를 역직렬화할 때마다 새로운 인스턴스가 만들어진다.
+@TODO : 직렬화와 새로운 인스턴스 생성 확인
+
+### 원소가 하나인 열거 타입 선언 방식
+추가 노력 없이 직렬화가 가능하고, 리플렉션 공격에서도 새로운 인스턴스가 생기는 일을 막아준다. 대부분 상황에서는 이 방식이 가장 좋지만, Enum외의 클래스를 상속해야 한다면 사용할 수 없다
+```java
+public enum Singleton3 {
+    INSTANCE;
+    
+    public void doSomeThing(){}
+}
+```
 
 
 
