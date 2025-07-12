@@ -129,6 +129,7 @@ public static final List emptyList() {
 
 상속을 하려면 public, protected 생성자가 필요하지만 private으로 막아두었다면, 하위 클래스를 만들 수 없다. 하지만 이는 상속보다는 컴포지션을 사용하도록 유도한다는 점에서 오히려 장점으로 받아들일 수도 있다.
 
+[상속과 컴포지션 차이](./additional-information/상속과컴포지션차이.md)
 @TODO : 상속과 컴포지션의 차이 설명
 
 <br>
