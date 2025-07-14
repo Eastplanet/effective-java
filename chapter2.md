@@ -127,10 +127,9 @@ public static final List emptyList() {
 
 ### 1. 상속을 하려면 public이나 protected 생성자가 필요하니 정적 팩토리 메서드만 제공하면 하위 클래스를 만들 수 없다.
 
-상속을 하려면 public, protected 생성자가 필요하지만 private으로 막아두었다면, 하위 클래스를 만들 수 없다. 하지만 이는 상속보다는 컴포지션을 사용하도록 유도한다는 점에서 오히려 장점으로 받아들일 수도 있다.
+상속을 하려면 public, protected 생성자가 필요하지만 private 으로 막아두었다면, 하위 클래스를 만들 수 없다. 하지만 이는 상속보다는 컴포지션을 사용하도록 유도한다는 점에서 오히려 장점으로 받아들일 수도 있다.
 
 [상속과 컴포지션 차이](./additional-information/상속과컴포지션차이.md)
-@TODO : 상속과 컴포지션의 차이 설명
 
 <br>
 
@@ -427,10 +426,75 @@ public class Singleton2 {
 }
 ```
 
-두 방식 모두 직렬화하기 위해서 단순히 Serializable을 구현한다고 선언하는 것만으로는 부족하다. <br>
+두 방식 모두 직렬화하기 위해서 단순히 Serializable 을 구현한다고 선언하는 것만으로는 부족하다. <br>
 모든 인스턴스 필드를 일시적(transient)이라고 선언하고 readResolve 메서드를 제공해야 한다.(아이템 89) <br>
 이렇게 하지 않으면 직렬화된 인스턴스를 역직렬화할 때마다 새로운 인스턴스가 만들어진다.
-@TODO : 직렬화와 새로운 인스턴스 생성 확인
+
+
+> serialVersionUID 란? <br>
+private static final long serialVersionUID = 1L; 과 같은 식으로 클래스 내부에 선언된 걸 볼 수 있다. <br>
+이는 직렬화/역직렬화 시 똑같은 클래스더라도 변경이 있으면 호환이 되지 않을 수 있기 때문에 버전을 지정하기 위해 사용하는 것이다. <br>
+
+
+단순 Serializable 을 구현한 싱글톤 클래스
+```java
+public class Singleton implements Serializable {
+    // 싱글턴 인스턴스
+    private static final Singleton INSTANCE = new Singleton();
+
+    // private 생성자
+    private Singleton() {}
+
+    public static Singleton getInstance() {
+        return INSTANCE;
+    }
+}
+```
+직렬화 - 역직렬화 실행 결과
+```java
+// 싱글턴 인스턴스 가져오기
+Singleton singleton = Singleton.getInstance();
+
+// 직렬화: 객체를 파일에 저장
+ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("singleton.ser"));
+out.writeObject(singleton);
+out.close();
+
+// 역직렬화: 파일에서 객체 복원
+ObjectInputStream in = new ObjectInputStream(new FileInputStream("singleton.ser"));
+Singleton deserializedSingleton = (Singleton) in.readObject();
+in.close();
+
+// 인스턴스 동일성 확인
+System.out.println("원본 객체: " + singleton); // 원본 객체: chapter2.item3.serializable.Singleton@6438a396
+System.out.println("직렬화/역직렬화 객체: " + deserializedSingleton); // 직렬화/역직렬화 객체: chapter2.item3.serializable.Singleton@61e717c2
+System.out.println("같은지 비교 : " + (singleton == deserializedSingleton)); // 같은지 비교 : false
+```
+
+readResolve 메서드를 작성한 싱글톤
+```java
+public class Singleton implements Serializable {
+    // 싱글턴 인스턴스
+    private static final Singleton INSTANCE = new Singleton();
+    // private 생성자
+    private Singleton() {}
+    public static Singleton getInstance() {
+        return INSTANCE;
+    }
+
+    // readResolve 메서드로 역직렬화 시 원래 인스턴스 반환
+    private Object readResolve() throws ObjectStreamException {
+        return INSTANCE;
+    }
+}
+```
+직렬화 - 역직렬화 실행 결과
+```java
+System.out.println("원본 객체: " + singleton); // 원본 객체: chapter2.item3.serializable.Singleton@6438a396
+System.out.println("직렬화/역직렬화 객체: " + deserializedSingleton); // 직렬화/역직렬화 객체: chapter2.item3.serializable.Singleton@6438a396
+System.out.println("같은지 비교 : " + (singleton == deserializedSingleton)); // 같은지 비교 : true
+```
+
 
 ### 원소가 하나인 열거 타입 선언 방식
 추가 노력 없이 직렬화가 가능하고, 리플렉션 공격에서도 새로운 인스턴스가 생기는 일을 막아준다. 대부분 상황에서는 이 방식이 가장 좋지만, Enum외의 클래스를 상속해야 한다면 사용할 수 없다
