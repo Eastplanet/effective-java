@@ -526,12 +526,89 @@ AssertionError 반드시 던질 필요는 클래스 내에서 호출하지 않�
 <br>
 
 # 아이템 5. 자원을 직접 명시하지 말고 의존 객체 주입을 사용하라
-의존성을 가진 클래스를 정적 유틸리티 클래스나 싱글톤으로 구현하는 경우가 있다. 이 경우 
+의존성을 가진 클래스를 `정적 유틸리티 클래스`나 `싱글톤`으로 구현하는 경우가 있다. <br>
 
+### 정적 유틸리티 클래스
+> 정적 유틸리티 클래스는 정적 메소드나 정적 필드만을 포함하여 인스턴스를 생성하지 않고 사용할 수 있는 클래스를 말한다.
+```java
+public class StaticUtilityClass {
+    private static final Dictionary dictionary = new Hashtable();
 
+    private static boolean isValid(String word){
+        // .. do something
+    }
+}
+```
+### 사용 예시
+```java
+StaticUtilityClass.isValid("Hello");
+```
 
+### 싱글톤 클래스 
+```java
+public class SingletonClass {
+    private static final SingletonClass INSTANCE = new SingletonClass();
 
+    private SingletonClass() {}
 
+    public static SingletonClass getInstance() {
+        return INSTANCE;
+    }
+
+    private final Dictionary dictionary = new Hashtable();
+
+    public boolean isValid(String word){
+        return false;
+    }
+}
+```
+
+두 방식에서 만약 사전이 언어별로 존재하거나, 테스트용 사전을 사용하고 싶을 땐 어떻게 할까? <br>
+final을 제거하고 사전을 변경하는 setter를 작성할 수 있겠지만, 이 방식은 오류를 내기 쉽고 멀티스레드 환경에서 사용할 수 없다. <br>
+> (예를들면) 사전을 null로 변경하고 바꾸고 싶은 사전을 넣는 동작에서 다른 스레드가 사용한다면 NullPointException을 발생시킬 수 있다. <br>
+> 정적 유틸리티 클래스와 싱글톤의 장점(특징) 중 하나인 Thread-safe를 만족시킬 수 없어지게 된다. <br>
+
+의존 관계를 가지는 클래스는 정적 유틸리티, 싱글톤 클래스보다 의존관계 주입을 사용하자.
+
+<br>
+<br>
+<br>
+
+# 아이템 6. 불필요한 객체 생성을 피하라
+
+### String은 리터럴 방식으로 생성하자
+
+```java
+String s = new String("Hello!");
+```
+> 위 방식은 실행될 때마다 String 인스턴스를 새로 만든다.
+
+```java
+String s = "Hello!";
+```
+> 위 방식은 하나의 String 인스턴스를 재사용한다. 또한 똑같은 문자열 리터럴을 사용하는 코드가 같은 객체를 사용함이 보장된다. <br>
+> 참고 : https://eastplanet.tistory.com/229 
+
+### 팩토리 메서드
+```java
+Boolean b1 = new Boolean(false);
+Boolean b2 = Boolean.valueOf(false);
+```
+> 위 경우에서 아래 방식을 사용하면, 생성한 객체를 재활용할 수 있다.
+
+### 오토 박싱
+```java
+Long sum = 0L;
+for (long i = 0; i <= Integer.MAX_VALUE; i++){
+    sum += i;
+}
+return sum;
+```
+위와 같은 방식에서 long을 Long으로 오토박싱하는 과정에서 오랜 시간이 걸리게 된다. <br>
+하지만 "객체 생성을 피해야 한다"라고 오해하면 안된다. <br>
+작은 객체를 생성/회수하는 비용은 크지 않으므로, 프로그램의 명확성, 간결성, 기능을 위해서 객체를 생성하는 것은 좋은 일이다. <br>
+또한 아주 무거은 객체(DB 커넥션)이 아니고서야 객체 풀을 직접 만들지는 말아야 한다. <br>
+코드가 이해하기 어려워지고, 오히려 성능을 떨어뜨릴수 있다.
 
 
 
