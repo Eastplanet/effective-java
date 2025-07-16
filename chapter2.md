@@ -610,11 +610,74 @@ return sum;
 또한 아주 무거은 객체(DB 커넥션)이 아니고서야 객체 풀을 직접 만들지는 말아야 한다. <br>
 코드가 이해하기 어려워지고, 오히려 성능을 떨어뜨릴수 있다.
 
+<br>
+<br>
+<br>
 
+# 아이템 7. 다 쓴 객체 참조를 해제하라
 
+```java
+public class Stack {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
 
+    public Stack() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
 
+    public void push(Object element) {
+        ensureCapacity();
+        elements[size++] = element;
+    }
 
+    public Object pop() {
+        if (size == 0) {
+            throw new EmptyStackException();
+        }
+        return elements[--size];
+    }
+
+    private void ensureCapacity() {
+        if (size == elements.length) {
+            elements = Arrays.copyOf(elements, size * 2 + 1);
+        }
+    }
+}
+```
+위 코드는 문제가 없어 보이지만, size가 줄어든 이후 사용되지 않는 객체들이 GC의 대상이 되지 않는 문제가 있다. <br>
+이를 방지하기 위해서는 pop시 elements[size] = null; 을 해주어야 한다.
+
+![img.png](img.png)
+
+<br>
+<br>
+<br>
+
+# 아이템 8. finalizer 와 cleaner 사용을 피하라
+
+finalizer는 예측할 수 없고, 상황에 따라 위험할 수 있기 때문에 일반적으로 불필요하다. <br>
+cleaner는 finalizer보다는 덜 위험하지만, 여전히 예측할 수 없고, 일반적으로 불필요하다. <br>
+객체에 접근을 할 수 없게 된 후 finalizer와 cleaner가 실행되기까지 얼마나 걸릴지 알 수 없다. <br>
+파일 닫기를 finalizer, cleaner에 맡기면 중대한 오류를 일으킬 수도 있다. <br>
+상태를 영구적으로 수정하는 작업에서는 절대 finalizer나 cleaner에 의존해서는 안된다. (데이터베이스의 락 해제를 finalizer에서 처리) <br>
+다음과 같은 추가로 존재한다.
+- finalizer 동작 중 발생한 예외는 무시되기 때문에 제대로 삭제되지 못할 수 있다.
+- finalizer 를 사용한 클래스는 finalizer 공격에 노출되어 보안 문제를 일으킬 수도 있다.
+- finalizer를 사용하면 성능 문제를 일으킬 수 있다. (try-with-resources에 비해 50배 가량 느림)
+
+### 대체 방법
+AutoCloseable을 구현해주고, 인스턴스를 다 쓰고난 뒤 close를 호출하면 된다.
+
+<br>
+<br>
+<br>
+
+# 아이템 9. try-finally보다는 try-with-resources를 사용하라
+
+자바 라이브러리에는 close를 호출해서 직접 닫아줘야 하는 자원이 많다. <br>
+finalizer를 통해 자원 닫기를 놓쳤을 때 안전망을 구성하기도 하지만, 그리 믿을만 하지 못하다. <br>
+따라서 전통적으로 try-finally가 사용되었다.
 
 
 
