@@ -75,9 +75,95 @@ toString은 그 객체가 가진 주요 정보 모두를 반환하는 게 좋다
 toString에 포함된 필드는 getter를 제공하자, getter 없이 toString만 준다면 사실상 이를 이용하여 파싱을 하라는 것이다. <br>
 향후 toString 포맷을 바꾸면 시스템이 망가지는 결과를 초래할 수 있다. 
 
+# 아이템 13. clone 재정의는 주의해서 진행하라
+Cloneable은 아무 메서드도 정의하지 않고, 단순히 복제가 가능하다는 **의미만 전달**한다. <br>
+Object의 clone은 protected이기 때문에 외부에서 clone을 호출할 수 없다. 따라서 실무에서는 public으로 접근 제한자를 확장하여 재정의를 한다. <br>
+clone이 정확하게 동작하기 위해서는 1. 그 클래스와 모든 상위 클래스가 허술하며 복잡하며 강제할수도 없이 기술된 프로토콜을 지켜야만 한다. <br>
+그 결과 매우 깨지기 쉽고, 위험한 메커니즘이 탄생한다.
+
+### clone 메서드의 규약은 허술하다.
+
+어떤 x에 대해 다음 식은 참이다.
+```java
+x.clone() != x
+```
+다음 식도 참이다
+```java
+x.clone().getClass() == x.getClass()
+```
+다음 식은 일반적으로 참이지만, 필수는 아니다.
+```java
+x.clone().equals(x)
+```
+관례상, 이 clone이 반환하는 객체는 super.clone을 호출해 얻어야 한다. <br>
+이 클래스와 모든 상위 클래스가 이 관례를 따른다면 다음 식은 참이다.
+```java
+x.clone().getClass() == x.getClass()
+```
+관례상, 반환된 객체와 원본 객체는 독립적이어야 한다. 이를 만족하려면 super.clone으로 얻은 객체의 필드 중 하나 이상을 반환 전에 수정해야 할 수도 있다.
+
+> Object.clone() 동작 방식 <br>
+> 해당 메서드는 native로 C/C++ 코드로 구현된다. (JVM 내부) <br>
+> 메모리에서 해당 객체의 모든 필드를 비트 단위로 복사한다. (얕은 복사) <br>
+
+### 잘못된 clone 구현이 상위 부모 중 하나라도 있다면.. 
+
+![img_1.png](img_1.png)
+
+위와 같이 super.clone을 잘 부르면 된다.
+
+<br>
+<br>
 
 
+![img_2.png](img_2.png)
 
+super.clone을 부르는게 아니라 그냥 new로 만들어서 줘버린다면? <br>
+부모가 자식의 필드를 못보는 등의 여러 제약사항을 전부 뛰어 넘는 JVM에서의 메모리의 비트를 읽어 복사를 하는 강력한(원래의) 기능이 사라진다. <br>
 
+### 얕은 복사
 
+클래스에 정의된 모든 필드가 기본 타입이고, 불변 객체를 참조한다면 정상적으로 동작한다. <br>
+하지만 가변 객체를 참조하는 순간 문제가 발생한다. <br>
 
+![img_3.png](img_3.png)
+
+위와 같이 복사되기를 기대하지만, 실제로는 얕은 복사가 되어 아래와 같이 복사가 된다.
+
+![img_4.png](img_4.png)
+
+아래와 같이 car에 대해서도 재귀적으로 clone을 호출하는 방식으로 해결할 수 있다.
+
+```java
+@Override
+protected Parent clone() throws CloneNotSupportedException {
+  Parent clone = (Parent) super.clone();
+  clone.car = car.clone();
+  return clone;
+}
+```
+
+### 정리
+- Cloneable을 구현하는 모든 클래스는 clone을 재정의해야 한다.
+- 접근 제한자는 public
+- 반환 타입은 자신 클래스
+- super.clone을 호출한 후 (깊은 복사가 필요하다면) 필드를 적절히 수정한다.
+
+복사 생성자, 복사 팩터리 방식이 Cloneable/clone 방식보다 나은 면이 많다.
+
+### 복사 생성자
+자신과 같은 클래스의 인스턴스를 인수로 받는 생성자를 말한다.
+
+```java
+public MyClass(MyClass myClass) { ... };
+```
+
+### 복사 팩터리
+복사 생성자를 모방한 정적 팩터리다.
+
+```java
+public static MyClass newInstance(MyClass myClass) { ... } ;
+```
+
+위와 같은 방식은 MyClass에 인터페이스가 올 수 있다. <br>
+HashSet 객체 s를 TreeSet으로 복제하기 위해 간단히 new TreeSet<>(s); 가 가능해진다.
