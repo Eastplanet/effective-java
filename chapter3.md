@@ -167,3 +167,44 @@ public static MyClass newInstance(MyClass myClass) { ... } ;
 
 위와 같은 방식은 MyClass에 인터페이스가 올 수 있다. <br>
 HashSet 객체 s를 TreeSet으로 복제하기 위해 간단히 new TreeSet<>(s); 가 가능해진다.
+
+# 아이템 14. Comparable을 구현할지 고려하라
+
+compareTo는 단순 동치성 비교에 더해 순서까지 비교할 수 있다며, 제네릭하다.
+Comparable을 구현했다는 것은 인스턴스들에는 자연적인 순서가 있음을 뜻한다. <br>
+
+compareTo 메서드의 일반 규약은 equals의 규약과 비슷하다. <br>
+sig(표현식)은 부호 함수를 뜻한다.
+
+- Comparable을 구현한 클래스는 모든 x,y에 대해 sgn(x.compareTo(y)) == -sgn(y.compareTo(x))여야 한다.
+- Comparable을 구현한 클래스는 추이성을 보장해야 한다. 즉 x.compareTo(y) > 0 && y.compareTo(z) > 0 이면, x.compareTo(z) > 0 이다.
+- Comparable을 구현한 클래스는 모든 z에 대해 x.compareTo(y) == 0이면 sgn(x.compareTo(z)) == sgn(y.compareTo(z))다.
+- 필수는 아니지만 지키면 좋은 사항 : (x.compareTo(y) == 0) == (x.equals(y))여야 한다. Comparable을 구현하고 이 권고를 지키지 않는 모든 클래스는 그 사실을 명시해야 한다.
+
+> 필수는 아니라고 책에 나와있지만 개인적인 경험으로 해당 사항을 지키지 않는 경우 잡기 매우 어려운 버그를 유발할 수 있다. <br>
+> 따라서 compareTo가 0이 나온다면 equals도 true가 나오도록 작성하자. <br>
+> 참고: https://eastplanet.tistory.com/215
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
